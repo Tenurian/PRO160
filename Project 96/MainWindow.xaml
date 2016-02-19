@@ -5,8 +5,115 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Project_96"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Height="720" Width="1280">
+    <Window.Resources>
+        <local:TesterItem x:Key="TesterItem"></local:TesterItem>
+        <local:ItemInfoBinder x:Key="ItemInfoBinder"></local:ItemInfoBinder>
+    </Window.Resources>
     <Grid>
-        
+        <TabControl x:Name="tabControl" >
+            <TabItem Header="Historics">
+                <Grid Background="#ffab4a">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="4*"></ColumnDefinition>
+                        <ColumnDefinition Width="5*"></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"></RowDefinition>
+                            <RowDefinition Height="*"></RowDefinition>
+                        </Grid.RowDefinitions>
+                        <Grid Background="#0079bf">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"></ColumnDefinition>
+                                <ColumnDefinition Width="2*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Image Name="icon" Grid.Column="0" Height="100" Width="100" />
+                            <Grid Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"></ColumnDefinition>
+                                    <ColumnDefinition Width="*"></ColumnDefinition>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="4*"></RowDefinition>
+                                    <RowDefinition Height="*"></RowDefinition>
+                                    <RowDefinition Height="*"></RowDefinition>
+                                    <RowDefinition Height="*"></RowDefinition>
+                                    <RowDefinition Height="*"></RowDefinition>
+                                    <RowDefinition Height="*"></RowDefinition>
+                                    <RowDefinition Height="4*"></RowDefinition>
+                                </Grid.RowDefinitions>
+
+                                <Label Grid.Row="1" Grid.Column="0" HorizontalAlignment="Left" FontWeight="Bold">Name:</Label>
+                                <Label Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" FontWeight="Bold">Description:</Label>
+                                <Label Grid.Row="3" Grid.Column="0" HorizontalAlignment="Left" FontWeight="Bold">Item ID:</Label>
+                                <Label Grid.Row="4" Grid.Column="0" HorizontalAlignment="Left" FontWeight="Bold">Item Price:</Label>
+                                <Label Grid.Row="5" Grid.Column="0" HorizontalAlignment="Left" FontWeight="Bold">Members Only:</Label>
+
+
+                                <Label Grid.Row="1" Grid.Column="1" x:Name="ItemName" HorizontalAlignment="Left">
+                                    <Label.Content>
+                                        <MultiBinding Converter="{StaticResource ItemInfoBinder}">
+                                            <Binding ElementName="ItemID" Path="Content"></Binding>
+                                            <Binding RelativeSource="{RelativeSource Self}"></Binding>
+                                        </MultiBinding>
+                                    </Label.Content>
+                                </Label>
+                                <Label Grid.Row="2" Grid.Column="1" x:Name="ItemDesc" HorizontalAlignment="Left">
+                                    <Label.Content>
+                                        <MultiBinding Converter="{StaticResource ItemInfoBinder}">
+                                            <Binding ElementName="ItemID" Path="Content"></Binding>
+                                            <Binding RelativeSource="{RelativeSource Self}"></Binding>
+                                        </MultiBinding>
+                                    </Label.Content>
+                                </Label>
+                                <Label Grid.Row="3" Grid.Column="1" x:Name="ItemID" HorizontalAlignment="Left">
+                                    ID
+                                </Label>
+                                <Label Grid.Row="4" Grid.Column="1" x:Name="ItemPrice" HorizontalAlignment="Left">
+                                    <Label.Content>
+                                        <MultiBinding Converter="{StaticResource ItemInfoBinder}">
+                                            <Binding ElementName="ItemID" Path="Content"></Binding>
+                                            <Binding RelativeSource="{RelativeSource Self}"></Binding>
+                                        </MultiBinding>
+                                    </Label.Content>
+                                </Label>
+                                <Label Grid.Row="5" Grid.Column="1" x:Name="MembersOnly" HorizontalAlignment="Left">
+                                    <Label.Content>
+                                        <MultiBinding Converter="{StaticResource ItemInfoBinder}">
+                                            <Binding ElementName="ItemID" Path="Content"></Binding>
+                                            <Binding RelativeSource="{RelativeSource Self}"></Binding>
+                                        </MultiBinding>
+                                    </Label.Content>
+                                </Label>
+                            </Grid>
+                            <!--<StackPanel Grid.Column="1" x:Name="ItemInfoLabels" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" x:Name="ItemInfo" VerticalAlignment="Center" HorizontalAlignment="Center">
+                            </StackPanel>-->
+                        </Grid>
+                        <Grid Grid.Row="1" Background="#61bd4f">
+                            <ListBox Name="PriceHistory" ScrollViewer.VerticalScrollBarVisibility="Visible" VerticalAlignment="Stretch" Margin="52,43,52,43">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Label Content="{Binding date}"></Label>
+                                            <Label Content="{Binding cost}"></Label>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </Grid>
+                    <StackPanel Grid.Column="1" Name="SearchArea">
+
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Adviser" Margin="0,-1,-4,-1">
+                <Grid Background="#FFE5E5E5"/>
+            </TabItem>
+        </TabControl>
+
     </Grid>
 </Window>
