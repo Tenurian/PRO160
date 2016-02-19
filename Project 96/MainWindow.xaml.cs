@@ -20,9 +20,12 @@ namespace Project_96
     /// </summary>
     public partial class MainWindow : Window
     {
+        public TesterItem test;
         public MainWindow()
         {
             InitializeComponent();
+            test = new TesterItem();
         }
+        //public TesterItem test = new TesterItem();
     }
 }
