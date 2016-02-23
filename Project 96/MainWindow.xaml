@@ -5,7 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Project_96"
         mc:Ignorable="d"
-        Title="MainWindow" Height="720" Width="1280">
+        Title="MainWindow" Height="720" Width="1280"
+        MinHeight="720" MinWidth="1280"
+        >
     <Window.Resources>
         <local:TesterItem x:Key="TesterItem"></local:TesterItem>
         <local:ItemInfoBinder x:Key="ItemInfoBinder"></local:ItemInfoBinder>
@@ -108,15 +110,13 @@
                     <Grid Grid.Column="1">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"></ColumnDefinition>
-                            <ColumnDefinition Width="2*"></ColumnDefinition>
-                            <ColumnDefinition Width="*"></ColumnDefinition>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height=".5*"></RowDefinition>
                             <RowDefinition Height="2*"></RowDefinition>
                             <RowDefinition Height="*"></RowDefinition>
                         </Grid.RowDefinitions>
-                        <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal" Name="SearchArea" HorizontalAlignment="Center">
+                        <StackPanel MinWidth="250px" Grid.Column="1" Grid.Row="1" Orientation="Horizontal" Name="SearchArea" HorizontalAlignment="Center">
                             <Label x:Name="label" Grid.Column="1" HorizontalAlignment="Center"  VerticalAlignment="Top">Item Name:</Label>
                             <TextBox x:Name="textBox" Grid.Column="1" HorizontalAlignment="Left" Height="20" TextWrapping="Wrap" VerticalAlignment="Top" Width="202"/>
                             <Button Name="SearchBtn" HorizontalAlignment="Center" VerticalAlignment="Top">Search</Button>
