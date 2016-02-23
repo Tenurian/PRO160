@@ -118,7 +118,7 @@
                         </Grid.RowDefinitions>
                         <StackPanel Grid.Column="1" Grid.Row="1" Orientation="Horizontal" Name="SearchArea" HorizontalAlignment="Center">
                             <Label x:Name="label" Grid.Column="1" HorizontalAlignment="Center"  VerticalAlignment="Top">Item Name:</Label>
-                            <TextBox x:Name="textBox" Grid.Column="1" HorizontalAlignment="Left" Height="20" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="202"/>
+                            <TextBox x:Name="textBox" Grid.Column="1" HorizontalAlignment="Left" Height="20" TextWrapping="Wrap" VerticalAlignment="Top" Width="202"/>
                             <Button Name="SearchBtn" HorizontalAlignment="Center" VerticalAlignment="Top">Search</Button>
                         </StackPanel>
                     </Grid>
