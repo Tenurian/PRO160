@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.DataVisualization.Charting;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -23,6 +24,7 @@ namespace Project_96
     public partial class MainWindow : Window
     {
         public static TesterItem testItem;
+        public bool JustLoaded = true;
         public MainWindow()
         {
             InitializeComponent();
@@ -34,7 +36,6 @@ namespace Project_96
             bitmapImage.UriSource = new Uri(testItem.iconURL);
             bitmapImage.EndInit();
             icon.Source = bitmapImage;
-            //we can deal with when the image is getting populated later
             /* Future code to try to bind it to the JSON object from the server */
             //            string GET(string url) 
             //{
@@ -88,7 +89,119 @@ namespace Project_96
             var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             return epoch.AddSeconds(unixTime / 1000);
         }
-      
+
+        private void LoadLineChartData(int startIndex)
+        {
+            Dictionary<DateTime, int> priceHistory = new Dictionary<DateTime, int>();
+
+            //foreach (TesterItem.HistoryPrice hist in testItem.history)
+            for(int i = startIndex; i < testItem.history.Count; i++)
+            {
+                var hist = testItem.history[i];
+                long hold;
+                if (Int64.TryParse(hist.date, out hold))
+                {
+                    var d = FromUnixTime(hold);
+                    priceHistory.Add(d,hist.prc);
+                }
+                else
+                {
+                    priceHistory.Add(new DateTime(),hist.prc );
+                }
+            }
+
+            ((LineSeries)PriceHistoryChart.Series[0]).ItemsSource = priceHistory;
+
+
+            //((LineSeries)PriceHistoryChart.Series[0]).ItemsSource =
+            //    new KeyValuePair<DateTime, int>[]{
+            //new KeyValuePair<DateTime, int>(DateTime.Now, 100),
+            //new KeyValuePair<DateTime, int>(DateTime.Now.AddMonths(1), 130),
+            //new KeyValuePair<DateTime, int>(DateTime.Now.AddMonths(2), 150),
+            //new KeyValuePair<DateTime, int>(DateTime.Now.AddMonths(3), 125),
+            //new KeyValuePair<DateTime, int>(DateTime.Now.AddMonths(4),155) };
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            JustLoaded = false;
+            LoadLineChartData((testItem.history.Count - 7) - (Int32)(((testItem.history.Count - 7) * (.5))));
+            //const double margin = 10;
+            //double xmin = margin;
+            //double xmax = myCanvas.Width - margin;
+            //double ymin = margin;
+            //double ymax = myCanvas.Height - margin;
+            //const double step = 10;
+
+            //// Make the X axis.
+            //GeometryGroup xaxis_geom = new GeometryGroup();
+            //xaxis_geom.Children.Add(new LineGeometry(
+            //    new Point(0, ymax), new Point(myCanvas.Width, ymax)));
+            //for (double x = xmin + step;
+            //    x <= myCanvas.Width - step; x += step)
+            //{
+            //    xaxis_geom.Children.Add(new LineGeometry(
+            //        new Point(x, ymax - margin / 2),
+            //        new Point(x, ymax + margin / 2)));
+            //}
+
+            //Path xaxis_path = new Path();
+            //xaxis_path.StrokeThickness = 1;
+            //xaxis_path.Stroke = Brushes.Black;
+            //xaxis_path.Data = xaxis_geom;
+
+            //myCanvas.Children.Add(xaxis_path);
+
+            //// Make the Y ayis.
+            //GeometryGroup yaxis_geom = new GeometryGroup();
+            //yaxis_geom.Children.Add(new LineGeometry(
+            //    new Point(xmin, 0), new Point(xmin, myCanvas.Height)));
+            //for (double y = step; y <= myCanvas.Height - step; y += step)
+            //{
+            //    yaxis_geom.Children.Add(new LineGeometry(
+            //        new Point(xmin - margin / 2, y),
+            //        new Point(xmin + margin / 2, y)));
+            //}
+
+            //Path yaxis_path = new Path();
+            //yaxis_path.StrokeThickness = 1;
+            //yaxis_path.Stroke = Brushes.Black;
+            //yaxis_path.Data = yaxis_geom;
+
+            //myCanvas.Children.Add(yaxis_path);
+
+            //// Make some data sets.
+            //Brush[] brushes = { Brushes.Red, Brushes.Green, Brushes.Blue };
+            //Random rand = new Random();
+            //for (int data_set = 0; data_set < 2; data_set++)
+            //{
+            //    int last_y = rand.Next((int)ymin, (int)ymax);
+
+            //    PointCollection points = new PointCollection();
+            //    for (double x = xmin; x <= xmax; x += step)
+            //    {
+            //        //last_y = rand.Next(last_y - 10, last_y + 10);
+            //        last_y = testItem.history[].prc;
+            //        if (last_y < ymin) last_y = (int)ymin;
+            //        if (last_y > ymax) last_y = (int)ymax;
+            //        points.Add(new Point(x, last_y));
+            //    }
+
+            //    Polyline polyline = new Polyline();
+            //    polyline.StrokeThickness = 1;
+            //    polyline.Stroke = brushes[data_set];
+            //    polyline.Points = points;
+
+            //    myCanvas.Children.Add(polyline);
+            //}
+        }
+
+        private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (!JustLoaded) {
+                LoadLineChartData((testItem.history.Count - 7) - (Int32)(((testItem.history.Count - 7) * (HistorySlider.Value / 100)))); //min of 7 days
+            }
+        }
     }
 
     public class History

@@ -4,9 +4,12 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Project_96"
+        xmlns:DV="clr-namespace:System.Windows.Controls.DataVisualization;assembly=System.Windows.Controls.DataVisualization.Toolkit"
+        xmlns:DVC="clr-namespace:System.Windows.Controls.DataVisualization.Charting;assembly=System.Windows.Controls.DataVisualization.Toolkit"
         mc:Ignorable="d"
         Title="MainWindow" Height="720" Width="1280"
         MinHeight="720" MinWidth="1280"
+        Loaded="Window_Loaded"
         >
     <Window.Resources>
         <local:TesterItem x:Key="TesterItem"></local:TesterItem>
@@ -95,7 +98,7 @@
                             </StackPanel>-->
                         </Grid>
                         <Grid Grid.Row="1" Background="#61bd4f">
-                            <ListBox Name="PriceHistory" ScrollViewer.VerticalScrollBarVisibility="Visible" VerticalAlignment="Stretch" Margin="52,43,52,43">
+                            <ListBox Visibility="Hidden" Name="PriceHistory" ScrollViewer.VerticalScrollBarVisibility="Visible" VerticalAlignment="Stretch" Margin="52,43,52,43">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
@@ -105,6 +108,30 @@
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="4*"></RowDefinition>
+                                    <RowDefinition Height="*"></RowDefinition>
+                                </Grid.RowDefinitions>
+                                <DVC:Chart Name="PriceHistoryChart" Width="563" Height="265"
+                                           Foreground="DarkBlue"
+                                           Title="Price History"
+                                           LegendTitle="Price"
+                                           Grid.Row="0">
+                                    <DVC:Chart.Series>
+                                        <DVC:LineSeries Title="Average Price"
+                                                        IndependentValueBinding="{Binding Path=Key}"
+                                                        DependentValueBinding="{Binding Path=Value}">
+                                            
+                                        </DVC:LineSeries>
+                                        <!--<DVC:LineSeries Title="Daily High Price"
+                                                        IndependentValueBinding="{Binding Path=Key}"
+                                                        DependentValueBinding="{Binding Path=Value}">
+                                        </DVC:LineSeries>-->
+                                    </DVC:Chart.Series>
+                                </DVC:Chart>
+                                <Slider x:Name="HistorySlider" Grid.Row="1" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" Value="50" ValueChanged="Slider_ValueChanged"></Slider>
+                            </Grid>
                         </Grid>
                     </Grid>
                     <Grid Grid.Column="1">
