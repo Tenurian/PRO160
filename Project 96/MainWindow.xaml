@@ -12,8 +12,8 @@
         Loaded="Window_Loaded"
         >
     <Window.Resources>
-        <local:TesterItem x:Key="TesterItem"></local:TesterItem>
         <local:ItemInfoBinder x:Key="ItemInfoBinder"></local:ItemInfoBinder>
+        <local:ItemIconBinder x:Key="ItemIconBinder"></local:ItemIconBinder>
     </Window.Resources>
     <Grid>
         <TabControl x:Name="tabControl" >
@@ -33,7 +33,14 @@
                                 <ColumnDefinition Width="*"></ColumnDefinition>
                                 <ColumnDefinition Width="2*"></ColumnDefinition>
                             </Grid.ColumnDefinitions>
-                            <Image Name="icon" Grid.Column="0" Height="100" Width="100" />
+                            <Image Name="icon" Grid.Column="0" Height="100" Width="100">
+                                <Image.Source>
+                                    <MultiBinding Converter="{StaticResource ItemIconBinder}">
+                                        <Binding ElementName="ItemID" Path="Content"></Binding>
+                                        <Binding RelativeSource="{RelativeSource Self}"></Binding>
+                                    </MultiBinding>
+                                </Image.Source>
+                            </Image>
                             <Grid Grid.Column="1">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"></ColumnDefinition>
@@ -48,6 +55,7 @@
                                     <RowDefinition Height="*"></RowDefinition>
                                     <RowDefinition Height="4*"></RowDefinition>
                                 </Grid.RowDefinitions>
+
 
                                 <Label Grid.Row="1" Grid.Column="0" HorizontalAlignment="Left" FontWeight="Bold">Name:</Label>
                                 <Label Grid.Row="2" Grid.Column="0" HorizontalAlignment="Left" FontWeight="Bold">Description:</Label>
@@ -72,8 +80,7 @@
                                         </MultiBinding>
                                     </Label.Content>
                                 </Label>
-                                <Label Grid.Row="3" Grid.Column="1" x:Name="ItemID" HorizontalAlignment="Left">
-                                    ID
+                                <Label Grid.Row="3" Grid.Column="1" x:Name="ItemID" HorizontalAlignment="Left">2
                                 </Label>
                                 <Label Grid.Row="4" Grid.Column="1" x:Name="ItemPrice" HorizontalAlignment="Left">
                                     <Label.Content>
@@ -119,15 +126,15 @@
                                            LegendTitle="Price"
                                            Grid.Row="0">
                                     <DVC:Chart.Series>
+                                        <DVC:LineSeries Title="Daily Price"
+                                                        IndependentValueBinding="{Binding Path=Key}"
+                                                        DependentValueBinding="{Binding Path=Value}">
+
+                                        </DVC:LineSeries>
                                         <DVC:LineSeries Title="Average Price"
                                                         IndependentValueBinding="{Binding Path=Key}"
                                                         DependentValueBinding="{Binding Path=Value}">
-                                            
                                         </DVC:LineSeries>
-                                        <!--<DVC:LineSeries Title="Daily High Price"
-                                                        IndependentValueBinding="{Binding Path=Key}"
-                                                        DependentValueBinding="{Binding Path=Value}">
-                                        </DVC:LineSeries>-->
                                     </DVC:Chart.Series>
                                 </DVC:Chart>
                                 <Slider x:Name="HistorySlider" Grid.Row="1" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" Value="50" ValueChanged="Slider_ValueChanged"></Slider>
@@ -143,11 +150,24 @@
                             <RowDefinition Height="2*"></RowDefinition>
                             <RowDefinition Height="*"></RowDefinition>
                         </Grid.RowDefinitions>
-                        <StackPanel MinWidth="250px" Grid.Column="1" Grid.Row="1" Orientation="Horizontal" Name="SearchArea" HorizontalAlignment="Center">
-                            <Label x:Name="label" Grid.Column="1" HorizontalAlignment="Center"  VerticalAlignment="Top">Item Name:</Label>
-                            <TextBox x:Name="textBox" Grid.Column="1" HorizontalAlignment="Left" Height="20" TextWrapping="Wrap" VerticalAlignment="Top" Width="202"/>
-                            <Button Name="SearchBtn" HorizontalAlignment="Center" VerticalAlignment="Top">Search</Button>
-                        </StackPanel>
+                        <Grid MinWidth="300px" Grid.Column="0" Grid.Row="1" Name="SearchArea" >
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="6*"></ColumnDefinition>
+                                <ColumnDefinition Width="4*"></ColumnDefinition>
+                                <ColumnDefinition Width="6*"></ColumnDefinition>
+                                <ColumnDefinition Width="4*"></ColumnDefinition>
+                                <ColumnDefinition Width="6*"></ColumnDefinition>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"></RowDefinition>
+                                <RowDefinition Height="10*"></RowDefinition>
+                            </Grid.RowDefinitions>
+                            <Label x:Name="label" Grid.Column="1" Grid.Row="0" Content="Item Name:" Height="24" HorizontalAlignment="Right" VerticalAlignment="Bottom"/>
+                            <TextBox x:Name="SearchBox" Grid.Column="2" Grid.Row="0" Height="20" TextWrapping="Wrap" TextChanged="SearchBox_TextChanged" VerticalAlignment="Bottom"/>
+                            <Button x:Name="SearchBtn" Grid.Column="3" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Bottom" Click="SearchBtn_Click" Content="Search" Height="20" Width="55"/>
+                            <ListBox x:Name="autofill" Grid.Column="2" Grid.Row="1" Panel.ZIndex="500" Visibility="Collapsed" VerticalAlignment="Top" SelectionChanged="autofill_SelectionChanged"/>
+                        </Grid>
+                        <!--<TextBox Name="output" Grid.Row="2"/>-->
                     </Grid>
                 </Grid>
             </TabItem>

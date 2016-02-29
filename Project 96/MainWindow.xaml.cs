@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
 using System.Globalization;
 using System.Linq;
 using System.Net;
@@ -8,6 +10,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.DataVisualization.Charting;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
@@ -23,47 +26,22 @@ namespace Project_96
     /// </summary>
     public partial class MainWindow : Window
     {
-        public static TesterItem testItem;
+        public static Item currentItem;
         public bool JustLoaded = true;
+        private int threshold = 10;
         public MainWindow()
         {
             InitializeComponent();
-            testItem = new TesterItem();
-            ItemID.Content = testItem.id;
 
-            var bitmapImage = new BitmapImage();
-            bitmapImage.BeginInit();
-            bitmapImage.UriSource = new Uri(testItem.iconURL);
-            bitmapImage.EndInit();
-            icon.Source = bitmapImage;
-            /* Future code to try to bind it to the JSON object from the server */
-            //            string GET(string url) 
-            //{
-            //                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-            //                try
-            //                {
-            //                    WebResponse response = request.GetResponse();
-            //                    using (Stream responseStream = response.GetResponseStream())
-            //                    {
-            //                        StreamReader reader = new StreamReader(responseStream, Encoding.UTF8);
-            //                        return reader.ReadToEnd();
-            //                    }
-            //                }
-            //                catch (WebException ex)
-            //                {
-            //                    WebResponse errorResponse = ex.Response;
-            //                    using (Stream responseStream = errorResponse.GetResponseStream())
-            //                    {
-            //                        StreamReader reader = new StreamReader(responseStream, Encoding.GetEncoding("utf-8"));
-            //                        String errorText = reader.ReadToEnd();
-            //                        // log errorText
-            //                    }
-            //                    throw;
-            //                }
-            //            }
+            currentItem = new Item(2);
+
+            ItemID.Content = currentItem.ID;
+
+            updateImage();
+
             List<History> priceHistory = new List<History>();
 
-            foreach(TesterItem.HistoryPrice hist in testItem.history)
+            foreach(Item.HistoryPrice hist in currentItem.DailyList)
             {
                 long hold;
                 if(Int64.TryParse(hist.date, out hold))
@@ -84,122 +62,173 @@ namespace Project_96
 
         }
 
+        public void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            string query = SearchBox.Text.ToString();
+            if (query != null && query != "")
+            {
+                try
+                {
+                    SqlConnection con = new SqlConnection(@"Data Source=TENURIANS_ROG;Initial Catalog=Osiris;User ID=osiris_user;Password=3p8%7r7k9#2i");
+                    con.Open();
+
+                    string searchString = String.Format("select top({0}) name from dbo.smartSearch('{1}');", threshold, query);
+
+                    SqlCommand cmd = new SqlCommand(searchString, con);
+
+                    SqlDataAdapter da = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+                    string str = "";
+                    var list = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("name")).ToList();
+
+                    foreach (string s in list)
+                    {
+                        str += s + "\n";
+                    }
+
+                    //output.Text = String.Format("{0}\n\n{1}", searchString, str);
+
+                    if (list.Count > 0)
+                    {
+                        autofill.ItemsSource = list;
+                        autofill.Visibility = Visibility.Visible;
+                    }
+                }
+                catch
+                {
+                    MessageBox.Show("db error");
+                }
+            }
+            else
+            {
+                autofill.ItemsSource = null;
+                autofill.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        public void updateImage()
+        {
+            var bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+            bitmapImage.UriSource = new Uri(currentItem.ImageURL);
+            bitmapImage.EndInit();
+            icon.Source = bitmapImage;
+        }
+
         public DateTime FromUnixTime(long unixTime)
         {
             var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             return epoch.AddSeconds(unixTime / 1000);
         }
 
-        private void LoadLineChartData(int startIndex)
+        private void LoadLineChartData(double view,int series)
         {
             Dictionary<DateTime, int> priceHistory = new Dictionary<DateTime, int>();
 
-            //foreach (TesterItem.HistoryPrice hist in testItem.history)
-            for(int i = startIndex; i < testItem.history.Count; i++)
+            if(series == 0)
             {
-                var hist = testItem.history[i];
-                long hold;
-                if (Int64.TryParse(hist.date, out hold))
+                int startIndex = (currentItem.DailyList.Count - 7) - (Int32)(((currentItem.DailyList.Count - 7) * (view / 100)));
+                //daily
+                for (int i = startIndex; i < currentItem.DailyList.Count; i++)
                 {
-                    var d = FromUnixTime(hold);
-                    priceHistory.Add(d,hist.prc);
+                    var hist = currentItem.DailyList[i];
+                    long hold;
+                    if (Int64.TryParse(hist.date, out hold))
+                    {
+                        var d = FromUnixTime(hold);
+                        priceHistory.Add(d, hist.prc);
+                    }
+                    else
+                    {
+                        priceHistory.Add(new DateTime(), hist.prc);
+                    }
                 }
-                else
+            } else
+            {
+                int startIndex = (currentItem.AverageList.Count - 7) - (Int32)(((currentItem.AverageList.Count - 7) * (view / 100)));
+                //average
+                for (int i = startIndex; i < currentItem.AverageList.Count; i++)
                 {
-                    priceHistory.Add(new DateTime(),hist.prc );
+                    var hist = currentItem.AverageList[i];
+                    long hold;
+                    if (Int64.TryParse(hist.date, out hold))
+                    {
+                        var d = FromUnixTime(hold);
+                        priceHistory.Add(d, hist.prc);
+                    }
+                    else
+                    {
+                        priceHistory.Add(new DateTime(), hist.prc);
+                    }
                 }
             }
-
-            ((LineSeries)PriceHistoryChart.Series[0]).ItemsSource = priceHistory;
-
-
-            //((LineSeries)PriceHistoryChart.Series[0]).ItemsSource =
-            //    new KeyValuePair<DateTime, int>[]{
-            //new KeyValuePair<DateTime, int>(DateTime.Now, 100),
-            //new KeyValuePair<DateTime, int>(DateTime.Now.AddMonths(1), 130),
-            //new KeyValuePair<DateTime, int>(DateTime.Now.AddMonths(2), 150),
-            //new KeyValuePair<DateTime, int>(DateTime.Now.AddMonths(3), 125),
-            //new KeyValuePair<DateTime, int>(DateTime.Now.AddMonths(4),155) };
+            ((LineSeries)PriceHistoryChart.Series[series]).ItemsSource = priceHistory;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             JustLoaded = false;
-            LoadLineChartData((testItem.history.Count - 7) - (Int32)(((testItem.history.Count - 7) * (.5))));
-            //const double margin = 10;
-            //double xmin = margin;
-            //double xmax = myCanvas.Width - margin;
-            //double ymin = margin;
-            //double ymax = myCanvas.Height - margin;
-            //const double step = 10;
-
-            //// Make the X axis.
-            //GeometryGroup xaxis_geom = new GeometryGroup();
-            //xaxis_geom.Children.Add(new LineGeometry(
-            //    new Point(0, ymax), new Point(myCanvas.Width, ymax)));
-            //for (double x = xmin + step;
-            //    x <= myCanvas.Width - step; x += step)
-            //{
-            //    xaxis_geom.Children.Add(new LineGeometry(
-            //        new Point(x, ymax - margin / 2),
-            //        new Point(x, ymax + margin / 2)));
-            //}
-
-            //Path xaxis_path = new Path();
-            //xaxis_path.StrokeThickness = 1;
-            //xaxis_path.Stroke = Brushes.Black;
-            //xaxis_path.Data = xaxis_geom;
-
-            //myCanvas.Children.Add(xaxis_path);
-
-            //// Make the Y ayis.
-            //GeometryGroup yaxis_geom = new GeometryGroup();
-            //yaxis_geom.Children.Add(new LineGeometry(
-            //    new Point(xmin, 0), new Point(xmin, myCanvas.Height)));
-            //for (double y = step; y <= myCanvas.Height - step; y += step)
-            //{
-            //    yaxis_geom.Children.Add(new LineGeometry(
-            //        new Point(xmin - margin / 2, y),
-            //        new Point(xmin + margin / 2, y)));
-            //}
-
-            //Path yaxis_path = new Path();
-            //yaxis_path.StrokeThickness = 1;
-            //yaxis_path.Stroke = Brushes.Black;
-            //yaxis_path.Data = yaxis_geom;
-
-            //myCanvas.Children.Add(yaxis_path);
-
-            //// Make some data sets.
-            //Brush[] brushes = { Brushes.Red, Brushes.Green, Brushes.Blue };
-            //Random rand = new Random();
-            //for (int data_set = 0; data_set < 2; data_set++)
-            //{
-            //    int last_y = rand.Next((int)ymin, (int)ymax);
-
-            //    PointCollection points = new PointCollection();
-            //    for (double x = xmin; x <= xmax; x += step)
-            //    {
-            //        //last_y = rand.Next(last_y - 10, last_y + 10);
-            //        last_y = testItem.history[].prc;
-            //        if (last_y < ymin) last_y = (int)ymin;
-            //        if (last_y > ymax) last_y = (int)ymax;
-            //        points.Add(new Point(x, last_y));
-            //    }
-
-            //    Polyline polyline = new Polyline();
-            //    polyline.StrokeThickness = 1;
-            //    polyline.Stroke = brushes[data_set];
-            //    polyline.Points = points;
-
-            //    myCanvas.Children.Add(polyline);
-            //}
+            LoadLineChartData(50, 0);
+            LoadLineChartData(50, 1);
         }
 
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (!JustLoaded) {
-                LoadLineChartData((testItem.history.Count - 7) - (Int32)(((testItem.history.Count - 7) * (HistorySlider.Value / 100)))); //min of 7 days
+            if (!JustLoaded)
+            {
+                LoadLineChartData(HistorySlider.Value, 0); //min of 7 days
+                LoadLineChartData(HistorySlider.Value, 1); //min of 7 days
+            }
+        }
+
+        private void SearchBtn_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                SqlConnection con = new SqlConnection(@"Data Source=TENURIANS_ROG;Initial Catalog=Osiris;User ID=osiris_user;Password=3p8%7r7k9#2i");
+                con.Open();
+
+                string searchString = String.Format("select name, id, description, imageURL from ItemInfo where name = '{0}'", SearchBox.Text);
+
+                SqlCommand cmd = new SqlCommand(searchString, con);
+
+                SqlDataAdapter da = new SqlDataAdapter(cmd);
+                DataTable dt = new DataTable();
+                da.Fill(dt);
+                var name = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("name")).ToList();
+                var id = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("id")).ToList();
+                var description = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("description")).ToList();
+                var imageurl = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("imageURL")).ToList();
+
+                currentItem = new Item(name.First(), id.First(), description.First(), imageurl.First());
+
+                updateImage();
+
+                LoadLineChartData(HistorySlider.Value, 0); //min of 7 days
+                LoadLineChartData(HistorySlider.Value, 1); //min of 7 days
+
+            }
+            catch
+            {
+                MessageBox.Show("db error");
+                throw new Exception();
+            }
+
+            ItemID.Content = SearchBox.Text;
+        }
+
+        private void autofill_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if(autofill.ItemsSource != null)
+            {
+                autofill.Visibility = Visibility.Collapsed;
+                SearchBox.TextChanged -= new TextChangedEventHandler(SearchBox_TextChanged);
+                if(autofill.SelectedIndex != -1)
+                {
+                    SearchBox.Text = autofill.SelectedItem.ToString();
+                }
+                SearchBox.TextChanged += new TextChangedEventHandler(SearchBox_TextChanged);
             }
         }
     }
@@ -210,31 +239,15 @@ namespace Project_96
         public int cost { get; set; }
     }
 
-    public class ItemInfoBinder : IMultiValueConverter
+    public class ItemIconBinder : IMultiValueConverter
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            var self = values[1];
-
-            var name = ((Label)self).Name;
-
-            //we'd use the ItemID to get the info from the database maybe?
-            TesterItem ti = new TesterItem();
-
-
-            switch (name)
-            {
-                case "ItemName":
-                    return ti.name;
-                case "ItemDesc":
-                    return ti.description;
-                case "ItemPrice":
-                    return ti.price;
-                case "MembersOnly":
-                    return ti.membersonly;
-                default:
-                    return String.Format("ERROR--x:Name={0} UNDEFINED", name);
-            }
+            var bitmapImage = new BitmapImage();
+            bitmapImage.BeginInit();
+            bitmapImage.UriSource = new Uri(new Item(Int32.Parse(values[0].ToString())).ImageURL);
+            bitmapImage.EndInit();
+            return bitmapImage;
             throw new NotImplementedException();
         }
 
@@ -244,16 +257,57 @@ namespace Project_96
         }
     }
 
-    public class ItemImageBinder : IValueConverter
+    public class ItemInfoBinder : IMultiValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            throw new NotImplementedException();
+            var self = values[1];
+
+            
+
+            var name = ((Label)self).Name;
+
+            //we'd use the ItemID to get the info from the database maybe?
+            int id;
+            Item ti;
+
+            //if (Int32.TryParse(values[0].ToString(), out id))
+            //{
+            //    ti = new Item(id);
+            //    MainWindow.currentItem = new Item(id);
+            //}
+            //else
+            //{
+            //    ti = new Item(2);
+            //    MainWindow.currentItem = new Item(2);
+            //}
+
+            if(MainWindow.currentItem != null)
+            {
+                switch (name)
+                {
+                    case "ItemName":
+                        return MainWindow.currentItem.Name;
+                    case "ItemDesc":
+                        return MainWindow.currentItem.Description;
+                    case "ItemPrice":
+                        return MainWindow.currentItem.Price;
+                    case "MembersOnly":
+                        return MainWindow.currentItem.membersonly;
+                    default:
+                        return String.Format("ERROR--x:Name={0} UNDEFINED", name);
+                }
+                throw new NotImplementedException();
+            } else
+            {
+                return null;
+            }
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
     }
+
 }
