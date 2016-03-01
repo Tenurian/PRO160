@@ -14,6 +14,14 @@
     <Window.Resources>
         <local:ItemInfoBinder x:Key="ItemInfoBinder"></local:ItemInfoBinder>
         <local:ItemIconBinder x:Key="ItemIconBinder"></local:ItemIconBinder>
+        <Style x:Key="InvisibleDataPointBlue" TargetType="{x:Type DVC:LineDataPoint}">
+            <Setter Property="Background" Value="#006600"/>
+            <Setter Property="Template" Value="{x:Null}"/>
+        </Style>
+        <Style x:Key="InvisibleDataPointRed" TargetType="{x:Type DVC:LineDataPoint}">
+            <Setter Property="Background" Value="Red"/>
+            <Setter Property="Template" Value="{x:Null}"/>
+        </Style>
     </Window.Resources>
     <Grid>
         <TabControl x:Name="tabControl" >
@@ -72,13 +80,15 @@
                                         </MultiBinding>
                                     </Label.Content>
                                 </Label>
-                                <Label Grid.Row="2" Grid.Column="1" x:Name="ItemDesc" HorizontalAlignment="Left">
-                                    <Label.Content>
-                                        <MultiBinding Converter="{StaticResource ItemInfoBinder}">
-                                            <Binding ElementName="ItemID" Path="Content"></Binding>
-                                            <Binding RelativeSource="{RelativeSource Self}"></Binding>
-                                        </MultiBinding>
-                                    </Label.Content>
+                                <Label Grid.Row="2" Grid.Column="1" HorizontalAlignment="Left" >
+                                    <TextBlock x:Name="ItemDesc" TextWrapping="WrapWithOverflow">
+                                        <TextBlock.Text>
+                                            <MultiBinding Converter="{StaticResource ItemInfoBinder}">
+                                                <Binding ElementName="ItemID" Path="Content"></Binding>
+                                                <Binding RelativeSource="{RelativeSource Self}"></Binding>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
                                 </Label>
                                 <Label Grid.Row="3" Grid.Column="1" x:Name="ItemID" HorizontalAlignment="Left">2
                                 </Label>
@@ -99,10 +109,6 @@
                                     </Label.Content>
                                 </Label>
                             </Grid>
-                            <!--<StackPanel Grid.Column="1" x:Name="ItemInfoLabels" VerticalAlignment="Center" HorizontalAlignment="Center">
-                            </StackPanel>
-                            <StackPanel Grid.Column="2" x:Name="ItemInfo" VerticalAlignment="Center" HorizontalAlignment="Center">
-                            </StackPanel>-->
                         </Grid>
                         <Grid Grid.Row="1" Background="#61bd4f">
                             <ListBox Visibility="Hidden" Name="PriceHistory" ScrollViewer.VerticalScrollBarVisibility="Visible" VerticalAlignment="Stretch" Margin="52,43,52,43">
@@ -121,23 +127,31 @@
                                     <RowDefinition Height="*"></RowDefinition>
                                 </Grid.RowDefinitions>
                                 <DVC:Chart Name="PriceHistoryChart" Width="563" Height="265"
-                                           Foreground="DarkBlue"
+                                           Foreground="#333"
                                            Title="Price History"
                                            LegendTitle="Price"
                                            Grid.Row="0">
                                     <DVC:Chart.Series>
                                         <DVC:LineSeries Title="Daily Price"
                                                         IndependentValueBinding="{Binding Path=Key}"
-                                                        DependentValueBinding="{Binding Path=Value}">
+                                                        DependentValueBinding="{Binding Path=Value}"
+                                                        DependentValuePath="LineValue"
+                                                        DataPointStyle="{StaticResource InvisibleDataPointBlue}">
 
                                         </DVC:LineSeries>
                                         <DVC:LineSeries Title="Average Price"
                                                         IndependentValueBinding="{Binding Path=Key}"
-                                                        DependentValueBinding="{Binding Path=Value}">
+                                                        DependentValueBinding="{Binding Path=Value}"
+                                                        DependentValuePath="LineValue"
+                                                        DataPointStyle="{StaticResource InvisibleDataPointRed}">
                                         </DVC:LineSeries>
                                     </DVC:Chart.Series>
                                 </DVC:Chart>
-                                <Slider x:Name="HistorySlider" Grid.Row="1" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" Value="50" ValueChanged="Slider_ValueChanged"></Slider>
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Label Content="Older" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="8,20,0,20"/>
+                                    <Slider x:Name="HistorySlider" Grid.Row="1" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center" Maximum="100" Value="50" ValueChanged="Slider_ValueChanged" IsDirectionReversed="True"></Slider>
+                                    <Label Content="Newer" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,20,9,20"/>
+                                </StackPanel>
                             </Grid>
                         </Grid>
                     </Grid>
@@ -167,7 +181,6 @@
                             <Button x:Name="SearchBtn" Grid.Column="3" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Bottom" Click="SearchBtn_Click" Content="Search" Height="20" Width="55"/>
                             <ListBox x:Name="autofill" Grid.Column="2" Grid.Row="1" Panel.ZIndex="500" Visibility="Collapsed" VerticalAlignment="Top" SelectionChanged="autofill_SelectionChanged"/>
                         </Grid>
-                        <!--<TextBox Name="output" Grid.Row="2"/>-->
                     </Grid>
                 </Grid>
             </TabItem>

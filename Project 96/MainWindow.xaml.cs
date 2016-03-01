@@ -41,19 +41,22 @@ namespace Project_96
 
             List<History> priceHistory = new List<History>();
 
-            foreach(Item.HistoryPrice hist in currentItem.DailyList)
+            if(currentItem.DailyList != null)
             {
-                long hold;
-                if(Int64.TryParse(hist.date, out hold))
+                foreach (Item.HistoryPrice hist in currentItem.DailyList)
                 {
+                    long hold;
+                    if (Int64.TryParse(hist.date, out hold))
+                    {
 
-                    //priceHistory.Add(new History() { date = String.Format("x{0}", hold), cost = hist.prc });
-                    var d = FromUnixTime(hold);
-                    priceHistory.Add(new History() { date = d.ToString(), cost = hist.prc });
-                }
-                else
-                {
-                    priceHistory.Add(new History() { date = hist.date, cost = hist.prc });
+                        //priceHistory.Add(new History() { date = String.Format("x{0}", hold), cost = hist.prc });
+                        var d = FromUnixTime(hold);
+                        priceHistory.Add(new History() { date = d.ToString(), cost = hist.prc });
+                    }
+                    else
+                    {
+                        priceHistory.Add(new History() { date = hist.date, cost = hist.prc });
+                    }
                 }
             }
 
@@ -86,8 +89,6 @@ namespace Project_96
                     {
                         str += s + "\n";
                     }
-
-                    //output.Text = String.Format("{0}\n\n{1}", searchString, str);
 
                     if (list.Count > 0)
                     {
@@ -125,8 +126,7 @@ namespace Project_96
         private void LoadLineChartData(double view,int series)
         {
             Dictionary<DateTime, int> priceHistory = new Dictionary<DateTime, int>();
-
-            if(series == 0)
+            if(series == 0 && currentItem.DailyList != null)
             {
                 int startIndex = (currentItem.DailyList.Count - 7) - (Int32)(((currentItem.DailyList.Count - 7) * (view / 100)));
                 //daily
@@ -144,7 +144,8 @@ namespace Project_96
                         priceHistory.Add(new DateTime(), hist.prc);
                     }
                 }
-            } else
+            }
+            else if(currentItem.AverageList != null)
             {
                 int startIndex = (currentItem.AverageList.Count - 7) - (Int32)(((currentItem.AverageList.Count - 7) * (view / 100)));
                 //average
@@ -189,19 +190,23 @@ namespace Project_96
                 SqlConnection con = new SqlConnection(@"Data Source=TENURIANS_ROG;Initial Catalog=Osiris;User ID=osiris_user;Password=3p8%7r7k9#2i");
                 con.Open();
 
-                string searchString = String.Format("select name, id, description, imageURL from ItemInfo where name = '{0}'", SearchBox.Text);
+                string searchString = String.Format("select name, id, description, imageURL, membersOnly from ItemInfo where name = '{0}'", SearchBox.Text);
 
                 SqlCommand cmd = new SqlCommand(searchString, con);
 
                 SqlDataAdapter da = new SqlDataAdapter(cmd);
                 DataTable dt = new DataTable();
                 da.Fill(dt);
-                var name = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("name")).ToList();
-                var id = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("id")).ToList();
-                var description = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("description")).ToList();
-                var imageurl = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("imageURL")).ToList();
+                var name = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("name")).ToList().First();
+                var id = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("id")).ToList().First();
+                var description = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("description")).ToList().First();
+                var imageurl = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("imageURL")).ToList().First();
+                var membersOnly = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<bool>("membersOnly")).ToList().First();
+                Console.WriteLine();
+                //currentItem = new Item(name, id, description, imageurl, ((membersOnly == 1) ? true : false));
+                currentItem = new Item(name, id, description, imageurl, membersOnly);
 
-                currentItem = new Item(name.First(), id.First(), description.First(), imageurl.First());
+                ItemID.Content = currentItem.ID;
 
                 updateImage();
 
@@ -215,7 +220,7 @@ namespace Project_96
                 throw new Exception();
             }
 
-            ItemID.Content = SearchBox.Text;
+            //ItemID.Content = SearchBox.Text;
         }
 
         private void autofill_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -262,27 +267,25 @@ namespace Project_96
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
             var self = values[1];
+            string name = null;
+            try
+            {
+                name = ((Label)self).Name;
+            }
+            catch
+            {
+                try {
+                    name = ((TextBlock)self).Name;
+                }
+                catch
+                {
+                    MessageBox.Show("Parsing Name error");
+                    throw;
+                }
+            }
 
-            
 
-            var name = ((Label)self).Name;
-
-            //we'd use the ItemID to get the info from the database maybe?
-            int id;
-            Item ti;
-
-            //if (Int32.TryParse(values[0].ToString(), out id))
-            //{
-            //    ti = new Item(id);
-            //    MainWindow.currentItem = new Item(id);
-            //}
-            //else
-            //{
-            //    ti = new Item(2);
-            //    MainWindow.currentItem = new Item(2);
-            //}
-
-            if(MainWindow.currentItem != null)
+            if (MainWindow.currentItem != null)
             {
                 switch (name)
                 {
