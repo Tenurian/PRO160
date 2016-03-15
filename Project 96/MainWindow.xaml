@@ -26,7 +26,7 @@
     <Grid>
         <TabControl x:Name="tabControl" >
             <TabItem Header="Historics">
-                <Grid Background="#ffab4a">
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="4*"></ColumnDefinition>
                         <ColumnDefinition Width="5*"></ColumnDefinition>
@@ -36,7 +36,7 @@
                             <RowDefinition Height="*"></RowDefinition>
                             <RowDefinition Height="*"></RowDefinition>
                         </Grid.RowDefinitions>
-                        <Grid Background="#0079bf">
+                        <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"></ColumnDefinition>
                                 <ColumnDefinition Width="2*"></ColumnDefinition>
@@ -110,7 +110,7 @@
                                 </Label>
                             </Grid>
                         </Grid>
-                        <Grid Grid.Row="1" Background="#61bd4f">
+                        <Grid Grid.Row="1">
                             <ListBox Visibility="Hidden" Name="PriceHistory" ScrollViewer.VerticalScrollBarVisibility="Visible" VerticalAlignment="Stretch" Margin="52,43,52,43">
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
@@ -180,12 +180,27 @@
                             <TextBox x:Name="SearchBox" Grid.Column="2" Grid.Row="0" Height="20" TextWrapping="Wrap" TextChanged="SearchBox_TextChanged" VerticalAlignment="Bottom"/>
                             <Button x:Name="SearchBtn" Grid.Column="3" Grid.Row="0" HorizontalAlignment="Left" VerticalAlignment="Bottom" Click="SearchBtn_Click" Content="Search" Height="20" Width="55"/>
                             <ListBox x:Name="autofill" Grid.Column="2" Grid.Row="1" Panel.ZIndex="500" Visibility="Collapsed" VerticalAlignment="Top" SelectionChanged="autofill_SelectionChanged"/>
+
+
+                            <StackPanel Grid.Column="1" Grid.ColumnSpan="3" Grid.Row="1">
+                                <Label Content="ADVISR" HorizontalAlignment="Center" FontWeight="Bold" FontSize="21.333"></Label>
+                                <Label Name="ADVISR_CONTENT"/>
+                            </StackPanel>
                         </Grid>
                     </Grid>
                 </Grid>
             </TabItem>
             <TabItem Header="Adviser" Margin="0,-1,-4,-1">
-                <Grid Background="#FFE5E5E5"/>
+                <StackPanel Orientation="Vertical">
+                    <StackPanel Background="#FFE5E5E5" Orientation="Horizontal">
+                        <Label Name="ADVISR_LIST1" HorizontalAlignment="Left"></Label>
+                        <Label Name="ADVISR_LIST2" HorizontalAlignment="Right"></Label>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Name="RISEN_STACK" Orientation="Vertical" HorizontalAlignment="Left"></StackPanel>
+                        <StackPanel Name="FALLEN_STACK" Orientation="Vertical" HorizontalAlignment="Right"></StackPanel>
+                    </StackPanel>
+                </StackPanel>
             </TabItem>
         </TabControl>
 

@@ -18,51 +18,139 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Threading;
+using System.Linq.Expressions;
 
 namespace Project_96
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
+
     public partial class MainWindow : Window
     {
+        static object locker = new object();
+        public static int MIN = 1000, MAX = 10000, count = 5, days = 5; //these will be changed via bindings later
         public static Item currentItem;
+        public List<ADVISRItem> RISEN, FALLEN;
+
         public bool JustLoaded = true;
         private int threshold = 10;
         public MainWindow()
         {
             InitializeComponent();
+            currentItem = new Item(4151);
+            RISEN = new List<ADVISRItem>();
+            FALLEN = new List<ADVISRItem>();
 
-            currentItem = new Item(2);
+            Thread t1 = new Thread(new ThreadStart(this.ADVISR1));
+            t1.Start();
+            Thread t2 = new Thread(new ThreadStart(this.ADVISR2));
+            t2.Start();
 
             ItemID.Content = currentItem.ID;
-
             updateImage();
 
-            List<History> priceHistory = new List<History>();
-
-            if(currentItem.DailyList != null)
+            Dictionary<DateTime, int> priceHistory = new Dictionary<DateTime, int>();
+            if (currentItem.DailyList != null)
             {
                 foreach (Item.HistoryPrice hist in currentItem.DailyList)
                 {
                     long hold;
                     if (Int64.TryParse(hist.date, out hold))
                     {
-
-                        //priceHistory.Add(new History() { date = String.Format("x{0}", hold), cost = hist.prc });
                         var d = FromUnixTime(hold);
-                        priceHistory.Add(new History() { date = d.ToString(), cost = hist.prc });
+                        priceHistory.Add(d, hist.prc);
+                    }
+                    else if (Convert.ToDateTime(hist.date.ToString()) != null)
+                    {
+                        var c = Convert.ToDateTime(hist.date.ToString());
+                        priceHistory.Add(c, hist.prc);
                     }
                     else
                     {
-                        priceHistory.Add(new History() { date = hist.date, cost = hist.prc });
+                        priceHistory.Add(new DateTime(), hist.prc);
                     }
                 }
             }
 
             PriceHistory.ItemsSource = priceHistory;
-            
 
+
+        }
+
+        public class ADVISRItem
+        {
+            public readonly string name;
+            public readonly int id, price, CURRENT_TREND_DIRECTION, PREVIOUS_TREND_DIRECTION, Direction_Change;
+            public readonly decimal CHANGE_IN_DIFF;
+
+            public ADVISRItem(string name, int id, decimal CHANGE_IN_DIFF, int Direction_Change) //for the advisr tab
+            {
+                this.name = name;
+                this.id = id;
+                this.CHANGE_IN_DIFF = CHANGE_IN_DIFF;
+                this.Direction_Change = Direction_Change;
+            }
+
+            public ADVISRItem(string name, int id, decimal CHANGE_IN_DIFF, int CURRENT_TREND_DIRECTION, int PREVIOUS_TREND_DIRECTION, int Direction_Change) //for the advisr section in historics tab
+            {
+                this.name = name;
+                this.id = id;
+                this.CHANGE_IN_DIFF = CHANGE_IN_DIFF;
+                this.CURRENT_TREND_DIRECTION = CURRENT_TREND_DIRECTION;
+                this.PREVIOUS_TREND_DIRECTION = PREVIOUS_TREND_DIRECTION;
+                this.Direction_Change = Direction_Change;
+            }
+        }
+
+        public void UpdateADVISRTab(int list, string list1)
+        {
+            lock (locker)
+            {
+                if (list == 0)
+                {
+
+                    Action l1 = () => ADVISR_LIST1.Content = list1;
+                    Dispatcher.Invoke(l1);
+                }
+                else
+                {
+                    Action l1 = () => ADVISR_LIST2.Content = list1;
+                    Dispatcher.Invoke(l1);
+                }
+            }
+        }
+        public void UpdateADVISRTab(int list, List<ADVISRItem> list1)
+        {
+            lock (locker)
+            {
+                Application.Current.Dispatcher.Invoke((Action)delegate {
+                    List<Label> lizst = new List<Label>();
+                    foreach (ADVISRItem i in list1)
+                    {
+                        Label l = new Label();
+                        l.Content = String.Format("ID: {0} :: Name: {1} :: CID: {2} :: DCW: {3} :: Price: {4}\n", i.id, i.name, i.CHANGE_IN_DIFF, i.Direction_Change, new Item(i.id).Price);
+                        lizst.Add(l);
+                    }
+                    Console.WriteLine();
+                    foreach(Label l in lizst)
+                    {
+                        if (list == 0)
+                        {
+                            RISEN_STACK.Children.Add(l);
+                            //Action l1 = () => ADVISR_LIST1.Content = list1;
+                            //Dispatcher.Invoke(l1);
+                        }
+                        else
+                        {
+                            FALLEN_STACK.Children.Add(l);
+                            //Action l1 = () => ADVISR_LIST2.Content = list1;
+                            //Dispatcher.Invoke(l1);
+                        }
+                        var x = FALLEN_STACK.Children;
+                        Console.WriteLine();
+                    }
+                    Console.WriteLine();
+                });
+            }
         }
 
         public void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -108,6 +196,70 @@ namespace Project_96
             }
         }
 
+        public void ADVISR1()
+        {
+            RISEN = new List<ADVISRItem>();
+            SqlConnection con = new SqlConnection(@"Data Source=TENURIANS_ROG;Initial Catalog=Osiris;User ID=osiris_user;Password=3p8%7r7k9#2i");
+            con.Open();
+            string Risen_Query = String.Format("SELECT TOP ({2}) A.* FROM ADVISR_FULL({0}, {1}) AS A ORDER BY A.DIRECTION_CHANGE_WEIGHT DESC, A.CHANGE_IN_DIFF DESC", MIN, MAX, count);
+            SqlCommand risen_cmd = new SqlCommand(Risen_Query, con);
+            SqlDataAdapter risen_adapter = new SqlDataAdapter(risen_cmd);
+            DataTable risen_dt = new DataTable();
+            risen_adapter.Fill(risen_dt);
+            List<Int32> Risen_IDs = risen_dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("ID")).ToList();
+            List<string> Risen_NAMES = risen_dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("NAME")).ToList();
+            List<decimal> Risen_CIDs = risen_dt.Rows.OfType<DataRow>().Select(dr => dr.Field<decimal>("CHANGE_IN_DIFF")).ToList();
+            List<Int32> Risen_DCWs = risen_dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("DIRECTION_CHANGE_WEIGHT")).ToList();
+            string risen_stats = "";
+            for (int i = 0; i < count; i++)
+            {
+                RISEN.Add(
+                    new ADVISRItem(
+                        Risen_NAMES[i],
+                        Risen_IDs[i],
+                        Risen_CIDs[i],
+                        Risen_DCWs[i]
+                        )
+                    );
+                var r = RISEN[i];
+                risen_stats += String.Format("ID: {0} :: Name: {1} :: CID: {2} :: DCW: {3} :: Price: {4}\n", r.id, r.name, r.CHANGE_IN_DIFF, r.Direction_Change, new Item(r.id).Price);
+            }
+            UpdateADVISRTab(0, risen_stats);
+            UpdateADVISRTab(0, RISEN);
+        }
+
+        public void ADVISR2()
+        {
+            FALLEN = new List<ADVISRItem>();
+            SqlConnection con = new SqlConnection(@"Data Source=TENURIANS_ROG;Initial Catalog=Osiris;User ID=osiris_user;Password=3p8%7r7k9#2i");
+            con.Open();
+            string Fallen_Query = String.Format("SELECT TOP ({2}) A.* FROM ADVISR_FULL({0}, {1}) AS A ORDER BY A.DIRECTION_CHANGE_WEIGHT ASC, A.CHANGE_IN_DIFF DESC", MIN, MAX, count);
+            SqlCommand fallen_cmd = new SqlCommand(Fallen_Query, con);
+            SqlDataAdapter fallen_adapter = new SqlDataAdapter(fallen_cmd);
+            DataTable fallen_dt = new DataTable();
+            fallen_adapter.Fill(fallen_dt);
+            List<Int32> Fallen_IDs = fallen_dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("ID")).ToList();
+            List<string> Fallen_NAMES = fallen_dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("NAME")).ToList();
+            List<decimal> Fallen_CIDs = fallen_dt.Rows.OfType<DataRow>().Select(dr => dr.Field<decimal>("CHANGE_IN_DIFF")).ToList();
+            List<Int32> Fallen_DCWs = fallen_dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("DIRECTION_CHANGE_WEIGHT")).ToList();
+            string fallen_stats = "";
+            for (int i = 0; i < count; i++)
+            {
+                FALLEN.Add(
+                    new ADVISRItem(
+                        Fallen_NAMES[i],
+                        Fallen_IDs[i],
+                        Fallen_CIDs[i],
+                        Fallen_DCWs[i]
+                        )
+                    );
+                var f = FALLEN[i];
+                fallen_stats += String.Format("ID: {0} :: Name: {1} :: CID: {2} :: DCW: {3} :: Price: {4}\n", f.id, f.name, f.CHANGE_IN_DIFF, f.Direction_Change, new Item(f.id).Price);
+            }
+            UpdateADVISRTab(1, fallen_stats);
+            UpdateADVISRTab(1, FALLEN);
+        }
+
         public void updateImage()
         {
             var bitmapImage = new BitmapImage();
@@ -115,6 +267,33 @@ namespace Project_96
             bitmapImage.UriSource = new Uri(currentItem.ImageURL);
             bitmapImage.EndInit();
             icon.Source = bitmapImage;
+            Console.WriteLine();
+            SqlConnection con = new SqlConnection(@"Data Source=TENURIANS_ROG;Initial Catalog=Osiris;User ID=osiris_user;Password=3p8%7r7k9#2i");
+            con.Open();
+            Console.WriteLine();
+            string searchString = String.Format("SELECT name, id, CHANGE_IN_DIFF, CURRENT_TREND_DIRECTION, PREVIOUS_TREND_DIRECTION, Direction_Change FROM ADVISR3({0}, {1}, {2})", currentItem.ID, days, currentItem.Price);
+            SqlCommand cmd = new SqlCommand(searchString, con);
+            SqlDataAdapter da = new SqlDataAdapter(cmd);
+            DataTable dt = new DataTable();
+            da.Fill(dt);
+            Console.WriteLine();
+            var advsirItem = new ADVISRItem(dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("name")).ToList().First(),
+                dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("id")).ToList().First(),
+                dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Decimal>("CHANGE_IN_DIFF")).ToList().First(),
+                dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("CURRENT_TREND_DIRECTION")).ToList().First(),
+                dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("PREVIOUS_TREND_DIRECTION")).ToList().First(),
+                dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("Direction_Change")).ToList().First());
+            Console.WriteLine();
+            string info = String.Format("Name: {0}\nID: {1}\nCHANGE_IN_DIFF: {2}\nCURRENT_TREND_DIRECTION: {3}\nPREVIOUS_TREND_DIRECTION: {4}\nDirection_Change: {5}",
+                advsirItem.name,
+                advsirItem.id,
+                advsirItem.CHANGE_IN_DIFF,
+                advsirItem.CURRENT_TREND_DIRECTION,
+                advsirItem.PREVIOUS_TREND_DIRECTION,
+                advsirItem.Direction_Change
+                );
+            Console.WriteLine();
+            ADVISR_CONTENT.Content = info;
         }
 
         public DateTime FromUnixTime(long unixTime)
@@ -139,6 +318,11 @@ namespace Project_96
                         var d = FromUnixTime(hold);
                         priceHistory.Add(d, hist.prc);
                     }
+                    else if(Convert.ToDateTime(hist.date.ToString()) != null)
+                    {
+                        var c = Convert.ToDateTime(hist.date.ToString());
+                        priceHistory.Add(c, hist.prc);
+                    }
                     else
                     {
                         priceHistory.Add(new DateTime(), hist.prc);
@@ -157,6 +341,11 @@ namespace Project_96
                     {
                         var d = FromUnixTime(hold);
                         priceHistory.Add(d, hist.prc);
+                    }
+                    else if (Convert.ToDateTime(hist.date.ToString()) != null)
+                    {
+                        var c = Convert.ToDateTime(hist.date.ToString());
+                        priceHistory.Add(c, hist.prc);
                     }
                     else
                     {
@@ -185,39 +374,88 @@ namespace Project_96
 
         private void SearchBtn_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if(SearchBox.Text != null && SearchBox.Text != "" && SearchBox.Text != currentItem.Name)
             {
-                SqlConnection con = new SqlConnection(@"Data Source=TENURIANS_ROG;Initial Catalog=Osiris;User ID=osiris_user;Password=3p8%7r7k9#2i");
-                con.Open();
+                try
+                {
+                    SqlConnection con = new SqlConnection(@"Data Source=TENURIANS_ROG;Initial Catalog=Osiris;User ID=osiris_user;Password=3p8%7r7k9#2i");
+                    con.Open();
 
-                string searchString = String.Format("select name, id, description, imageURL, membersOnly from ItemInfo where name = '{0}'", SearchBox.Text);
+                    string hold = SearchBox.Text;
+                    hold = hold.Replace("'", "''");
 
-                SqlCommand cmd = new SqlCommand(searchString, con);
+                    string bortString = String.Format("select * from ItemInfo where name = '{0}'", hold);
+                    SqlCommand bort = new SqlCommand(bortString, con);
+                    SqlDataAdapter bortDA = new SqlDataAdapter(bort);
+                    DataTable bortDT = new DataTable();
+                    bortDA.Fill(bortDT);
 
-                SqlDataAdapter da = new SqlDataAdapter(cmd);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                var name = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("name")).ToList().First();
-                var id = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("id")).ToList().First();
-                var description = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("description")).ToList().First();
-                var imageurl = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("imageURL")).ToList().First();
-                var membersOnly = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<bool>("membersOnly")).ToList().First();
-                Console.WriteLine();
-                //currentItem = new Item(name, id, description, imageurl, ((membersOnly == 1) ? true : false));
-                currentItem = new Item(name, id, description, imageurl, membersOnly);
 
-                ItemID.Content = currentItem.ID;
+                    Console.WriteLine();
+                    var bortlist = bortDT.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("name")).ToList();
 
-                updateImage();
 
-                LoadLineChartData(HistorySlider.Value, 0); //min of 7 days
-                LoadLineChartData(HistorySlider.Value, 1); //min of 7 days
+                    if (bortlist.Count != 0)
+                    {
+                        var name = bortDT.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("name")).ToList().First();
+                        var id = bortDT.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("id")).ToList().First();
+                        var description = bortDT.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("description")).ToList().First();
+                        var imageurl = bortDT.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("imageURL")).ToList().First();
+                        var membersOnly = bortDT.Rows.OfType<DataRow>().Select(dr => dr.Field<bool>("membersOnly")).ToList().First();
+                        Console.WriteLine();
+                        //currentItem = new Item(name, id, description, imageurl, ((membersOnly == 1) ? true : false));
+                        currentItem = new Item(name, id, description, imageurl, membersOnly);
 
-            }
-            catch
-            {
-                MessageBox.Show("db error");
-                throw new Exception();
+                        ItemID.Content = currentItem.ID;
+
+                        updateImage();
+
+                        LoadLineChartData(HistorySlider.Value, 0); //min of 7 days
+                        LoadLineChartData(HistorySlider.Value, 1); //min of 7 days
+                    }
+                    else
+                    {
+
+                        string preSearchString = String.Format("select top(1) name from dbo.smartSearch('{0}');", hold);
+
+                        SqlCommand pcmd = new SqlCommand(preSearchString, con);
+
+                        SqlDataAdapter pda = new SqlDataAdapter(pcmd);
+                        DataTable pdt = new DataTable();
+                        pda.Fill(pdt);
+                        var list = pdt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("name")).ToList();
+
+                        var xt = list.First().Replace("'", "''");
+                        string searchString = String.Format("select name, id, description, imageURL, membersOnly from ItemInfo where name = '{0}'", list.First().Replace("'", "''"));
+
+                        SqlCommand cmd = new SqlCommand(searchString, con);
+
+                        SqlDataAdapter da = new SqlDataAdapter(cmd);
+                        DataTable dt = new DataTable();
+                        da.Fill(dt);
+                        var name = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("name")).ToList().First();
+                        var id = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<Int32>("id")).ToList().First();
+                        var description = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("description")).ToList().First();
+                        var imageurl = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<string>("imageURL")).ToList().First();
+                        var membersOnly = dt.Rows.OfType<DataRow>().Select(dr => dr.Field<bool>("membersOnly")).ToList().First();
+                        Console.WriteLine();
+                        //currentItem = new Item(name, id, description, imageurl, ((membersOnly == 1) ? true : false));
+                        currentItem = new Item(name, id, description, imageurl, membersOnly);
+
+                        ItemID.Content = currentItem.ID;
+
+                        updateImage();
+
+                        LoadLineChartData(HistorySlider.Value, 0); //min of 7 days
+                        LoadLineChartData(HistorySlider.Value, 1); //min of 7 days
+                    }
+                }
+                catch
+                {
+                    MessageBox.Show("db error");
+                    throw new Exception();
+                }
+
             }
 
             //ItemID.Content = SearchBox.Text;
@@ -236,6 +474,7 @@ namespace Project_96
                 SearchBox.TextChanged += new TextChangedEventHandler(SearchBox_TextChanged);
             }
         }
+
     }
 
     public class History
